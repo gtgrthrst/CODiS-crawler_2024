@@ -261,10 +261,11 @@ g.map_dataframe(
 )
 
 # 子圖調整
-y_ticks = range(0, 17, 4)
 for ax in g.axes:
     ax.set_legend(
-        title="$m \cdot s^{-1}$", bbox_to_anchor=(1.3, -0.1), loc="lower right"
+        title="$m \cdot s^{-1}$", 
+        bbox_to_anchor=(1.1, 1),  # 將圖例放在右上角外側
+        loc="upper left"          # 相對於 bbox_to_anchor 指定的點的 'upper left' 位置
     )
     ax.set_rgrids(y_ticks, y_ticks)
 
