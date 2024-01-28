@@ -32,7 +32,7 @@ start_date = datetime(2023, 1, 1)  # 開始日期
 end_date = datetime(2023, 12, 31)    # 結束日期
 
 # 基本下載路徑
-base_download_path = "C:/R/Python/Playwright/download/"
+base_download_path = "/home/ahb0222/python/Playweight_CODis/Download"
 
 # 建立下載路徑
 station_download_path = os.path.join(base_download_path, station_code)
@@ -189,17 +189,84 @@ print_df_as_table(combined_csv)
 combined_csv.to_csv( "combined_csv.csv", index=False, encoding='utf-8-sig')
 
 
-print_df_as_table(combined_csv,1000)
-
-import sweetviz as sv
-df['觀測時間(hour)'] = df['觀測時間(hour)'].astype(str)
-
-my_report = sv.analyze(combined_csv)
-# 生成报告
-my_report.show_html()
+print_df_as_table(combined_csv,10)
 
 
-import dtale
-dtale.show(combined_csv)
+# --------------繪製風花圖 --------------
+import matplotlib.pyplot as plt
+import numpy as np
+from windrose import WindroseAxes
+
+# 轉換為數值
+combined_csv['風向(360degree)'] = pd.to_numeric(combined_csv['風向(360degree)'], errors='coerce')
+combined_csv['風速(m/s)'] = pd.to_numeric(combined_csv['風速(m/s)'], errors='coerce')
+
+# 移除任何包含 NaN 的行
+combined_csv.dropna(subset=['風向(360degree)', '風速(m/s)'], inplace=True)
+
+# 轉換為 numpy 陣列
+directions = combined_csv['風向(360degree)'].to_numpy()
+speeds = combined_csv['風速(m/s)'].to_numpy()
+
+# 繪製風花圖
+ax = WindroseAxes.from_ax()
+ax.bar(directions, speeds, normed=True, opening=0.8, edgecolor='white')
+
+# 設定標籤和標題
+ax.set_legend()
+ax.set_title("windrose plot")
+
+plt.show()
+
+# --------------繪製風花圖子圖 --------------
+import seaborn as sns
 
 
+# 假設 combined_csv 是你的 DataFrame
+# 轉換 '日期' 欄位為 datetime 類型並提取月份
+combined_csv['日期'] = pd.to_datetime(combined_csv['日期'])
+combined_csv['month'] = combined_csv['日期'].dt.month
+
+# 風速和風向數據
+combined_csv['ws'] = combined_csv['風速(m/s)']
+combined_csv['wd'] = combined_csv['風向(360degree)']
+
+def plot_windrose_subplots(data, *, direction, var, color=None, **kwargs):
+    """wrapper function to create subplots per axis"""
+    ax = plt.gca()
+    ax = WindroseAxes.from_ax(ax=ax)
+    plot_windrose(direction_or_df=data[direction], var=data[var], ax=ax, **kwargs)
+
+# 創建子圖網格
+g = sns.FacetGrid(
+    data=combined_csv,
+    col="month",  # 使用提取的月份
+    col_wrap=3,
+    subplot_kws={"projection": "windrose"},
+    sharex=False,
+    sharey=False,
+    despine=False,
+    height=3.5,
+)
+
+# 映射數據到子圖
+g.map_dataframe(
+    plot_windrose_subplots,
+    direction="wd",
+    var="ws",
+    normed=True,
+    bins=(0.1, 1, 2, 3, 4, 5),
+    calm_limit=0.1,
+    kind="bar",
+)
+
+# 子圖調整
+y_ticks = range(0, 17, 4)
+for ax in g.axes:
+    ax.set_legend(
+        title="$m \cdot s^{-1}$", bbox_to_anchor=(1.3, -0.1), loc="lower right"
+    )
+    ax.set_rgrids(y_ticks, y_ticks)
+
+plt.subplots_adjust(wspace=-0.2)
+plt.show()
