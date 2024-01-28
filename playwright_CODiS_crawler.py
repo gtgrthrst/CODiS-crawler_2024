@@ -26,6 +26,8 @@ class TqdmWrapper(tqdm):
 # 定義站名
 station_name = "大寮 (C0V730)"
 station_code = station_name.split()[-1].strip("()")  # 提取站號
+station_longitude = 120.3957
+station_latitude = 22.6056
 
 # 定義日期區間
 start_date = datetime(2023, 1, 1)  # 開始日期
@@ -220,7 +222,7 @@ plt.show()
 
 # --------------繪製風花圖子圖 --------------
 import seaborn as sns
-
+from windrose import WindroseAxes, plot_windrose
 
 # 假設 combined_csv 是你的 DataFrame
 # 轉換 '日期' 欄位為 datetime 類型並提取月份
@@ -270,4 +272,64 @@ for ax in g.axes:
     ax.set_rgrids(y_ticks, y_ticks)
 
 plt.subplots_adjust(wspace=-0.2)
+plt.show()
+
+
+# --------------繪製風花圖_地圖 --------------
+import cartopy.crs as ccrs
+import cartopy.io.img_tiles as cimgt  # 正確導入 cimgt
+import matplotlib.pyplot as plt
+from windrose import WindroseAxes
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import pandas as pd
+import numpy as np
+import cartopy.feature as cfeature#预定义常量
+# 假設 combined_csv 是你的 DataFrame
+# 轉換數據類型並移除 NaN
+combined_csv['風向(360degree)'] = pd.to_numeric(combined_csv['風向(360degree)'], errors='coerce')
+combined_csv['風速(m/s)'] = pd.to_numeric(combined_csv['風速(m/s)'], errors='coerce')
+combined_csv.dropna(subset=['風向(360degree)', '風速(m/s)'], inplace=True)
+
+# 轉換為 numpy 陣列
+directions = combined_csv['風向(360degree)'].to_numpy()
+speeds = combined_csv['風速(m/s)'].to_numpy()
+
+# 指定地圖的範圍
+minlon, maxlon, minlat, maxlat = (station_longitude-0.5,station_longitude+0.5, station_latitude-0.5, station_latitude+0.5)
+
+# 選擇 Stamen 地圖圖源
+stamen_terrain = cimgt.Stamen('terrain-background')
+main_ax.add_image(stamen_terrain, 8)
+# 創建地圖
+proj = ccrs.PlateCarree()
+fig = plt.figure(figsize=(10, 8))
+main_ax = fig.add_subplot(1, 1, 1, projection=proj)
+main_ax.set_extent([minlon, maxlon, minlat, maxlat], crs=proj)
+main_ax.coastlines()
+main_ax.add_feature(cfeature.LAND)#添加陆地
+main_ax.add_feature(cfeature.COASTLINE,lw = 0.3)#添加海岸线
+main_ax.add_feature(cfeature.RIVERS,lw = 0.25)#添加河流
+#ax.add_feature(cfeat.RIVERS.with_scale('50m'),lw = 0.25)  # 加载分辨率为50的河流
+main_ax.add_feature(cfeature.LAKES)#添加湖泊
+main_ax.add_feature(cfeature.BORDERS, linestyle = '-',lw = 0.25)#不推荐，因为该默认参数会使得我国部分领土丢失
+main_ax.add_feature(cfeature.OCEAN)#添加海洋
+
+
+# 在地圖上添加風花圖的位置
+wrax = inset_axes(
+    main_ax,
+    width=1,  # size in inches
+    height=1,  # size in inches
+    loc="center",  # center bbox at given position
+    bbox_to_anchor=(station_longitude, station_latitude),  # position of the axe
+    bbox_transform=main_ax.transData,  # use data coordinate (not axe coordinate)
+    axes_class=WindroseAxes,  # specify the class of the axe
+)
+
+# 繪製風花圖
+wrax.bar(directions, speeds, edgecolor='white')
+
+# 設定風花圖標題
+# wrax.set_title("Wind Rose")
+
 plt.show()
