@@ -146,3 +146,60 @@ def run(playwright):
 with sync_playwright() as playwright:
     run(playwright)
 
+
+
+#----------------------繪圖----------------------
+print(station_download_path)
+import pandas as pd
+import os
+import glob
+from prettytable import PrettyTable
+
+
+def print_df_as_table(df, max_rows=5):
+    """
+    Print the first five rows of a Pandas DataFrame as a PrettyTable.
+
+    Parameters:
+    df (pandas.DataFrame): The DataFrame to print.
+    """
+    table = PrettyTable()
+    table.field_names = df.columns.tolist()
+
+    for row in df.head(max_rows).itertuples(index=False):
+        table.add_row(row)
+
+    print(table)
+    
+    
+#匯入station_download_path資料夾下所有csv檔案，並將檔名作為一個新的欄位
+os.chdir(station_download_path)
+extension = 'csv'
+all_filenames = [i for i in glob.glob('*.{}'.format(extension))]
+
+# 读取所有文件，跳过第二行，并添加文件名作为新列
+combined_csv = pd.concat([pd.read_csv(f, skiprows=[1]).assign(檔名=os.path.basename(f)) for f in all_filenames])
+
+#提取檔名中的日期新增到新的欄位
+combined_csv['日期'] = combined_csv['檔名'].str.extract('(\d{4}-\d{2}-\d{2})')
+
+#刪除檔名欄位
+combined_csv = combined_csv.drop(['檔名'], axis=1)
+print_df_as_table(combined_csv)
+combined_csv.to_csv( "combined_csv.csv", index=False, encoding='utf-8-sig')
+
+
+print_df_as_table(combined_csv,1000)
+
+import sweetviz as sv
+df['觀測時間(hour)'] = df['觀測時間(hour)'].astype(str)
+
+my_report = sv.analyze(combined_csv)
+# 生成报告
+my_report.show_html()
+
+
+import dtale
+dtale.show(combined_csv)
+
+
