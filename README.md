@@ -33,7 +33,8 @@ Chrome的版本太新也是一個大問題chromedriver支援還沒更新
 
 並且能在中斷後下次重新執行時比對是否下載過
 
-![Wind_Rose](Wind_Rose.png)
+![image](https://github.com/gtgrthrst/CODiS-crawler_2024/assets/37490507/7c0c929f-3ac6-4712-a124-37a0da61d196)
+
 
 ![Wind_Rose_Subplots](Wind_Rose_Subplots.png)
 
