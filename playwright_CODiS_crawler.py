@@ -26,15 +26,13 @@ class TqdmWrapper(tqdm):
 # 定義站名
 station_name = "大寮 (C0V730)"
 station_code = station_name.split()[-1].strip("()")  # 提取站號
-station_longitude = 120.3957
-station_latitude = 22.6056
 
 # 定義日期區間
 start_date = datetime(2023, 1, 1)  # 開始日期
 end_date = datetime(2023, 12, 31)    # 結束日期
 
 # 基本下載路徑
-base_download_path = "/home/ahb0222/python/Playweight_CODis/Download"
+base_download_path = "C:/R/Python/Playwright/download/"
 
 # 建立下載路徑
 station_download_path = os.path.join(base_download_path, station_code)
@@ -150,8 +148,9 @@ with sync_playwright() as playwright:
 
 
 
-#----------------------繪圖----------------------
+#----------------------資料整理----------------------
 print(station_download_path)
+
 import pandas as pd
 import os
 import glob
@@ -179,7 +178,7 @@ os.chdir(station_download_path)
 extension = 'csv'
 all_filenames = [i for i in glob.glob('*.{}'.format(extension))]
 
-# 读取所有文件，跳过第二行，并添加文件名作为新列
+# 讀取所有檔案，跳過第二行，並新增檔名作為新列
 combined_csv = pd.concat([pd.read_csv(f, skiprows=[1]).assign(檔名=os.path.basename(f)) for f in all_filenames])
 
 #提取檔名中的日期新增到新的欄位
@@ -192,6 +191,7 @@ combined_csv.to_csv( "combined_csv.csv", index=False, encoding='utf-8-sig')
 
 
 print_df_as_table(combined_csv,10)
+
 
 
 # --------------繪製風花圖 --------------
@@ -217,6 +217,12 @@ ax.bar(directions, speeds, normed=True, opening=0.8, edgecolor='white')
 # 設定標籤和標題
 ax.set_legend()
 ax.set_title("windrose plot")
+max_value = int(combined_csv['風速(m/s)'].max()) + 1
+print(max_value)
+# 修改Y軸以5為間隔
+yticks = np.arange(0, 26, 5) # 設定Y軸間距
+ax.set_yticks(yticks)
+ax.set_yticklabels([f"{i}%" for i in yticks])
 
 plt.show()
 
@@ -229,7 +235,7 @@ from windrose import WindroseAxes, plot_windrose
 combined_csv['日期'] = pd.to_datetime(combined_csv['日期'])
 combined_csv['month'] = combined_csv['日期'].dt.month
 
-# 風速和風向數據
+# 風速和風向資料
 combined_csv['ws'] = combined_csv['風速(m/s)']
 combined_csv['wd'] = combined_csv['風向(360degree)']
 
@@ -239,7 +245,7 @@ def plot_windrose_subplots(data, *, direction, var, color=None, **kwargs):
     ax = WindroseAxes.from_ax(ax=ax)
     plot_windrose(direction_or_df=data[direction], var=data[var], ax=ax, **kwargs)
 
-# 創建子圖網格
+# 建立子圖網格
 g = sns.FacetGrid(
     data=combined_csv,
     col="month",  # 使用提取的月份
@@ -251,7 +257,7 @@ g = sns.FacetGrid(
     height=3.5,
 )
 
-# 映射數據到子圖
+# 對映資料到子圖
 g.map_dataframe(
     plot_windrose_subplots,
     direction="wd",
@@ -277,15 +283,15 @@ plt.show()
 
 # --------------繪製風花圖_地圖 --------------
 import cartopy.crs as ccrs
-import cartopy.io.img_tiles as cimgt  # 正確導入 cimgt
+import cartopy.io.img_tiles as cimgt  # 正確匯入 cimgt
 import matplotlib.pyplot as plt
 from windrose import WindroseAxes
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import pandas as pd
 import numpy as np
-import cartopy.feature as cfeature#预定义常量
+import cartopy.feature as cfeature#預定義常量
 # 假設 combined_csv 是你的 DataFrame
-# 轉換數據類型並移除 NaN
+# 轉換資料類型並移除 NaN
 combined_csv['風向(360degree)'] = pd.to_numeric(combined_csv['風向(360degree)'], errors='coerce')
 combined_csv['風速(m/s)'] = pd.to_numeric(combined_csv['風速(m/s)'], errors='coerce')
 combined_csv.dropna(subset=['風向(360degree)', '風速(m/s)'], inplace=True)
@@ -293,29 +299,32 @@ combined_csv.dropna(subset=['風向(360degree)', '風速(m/s)'], inplace=True)
 # 轉換為 numpy 陣列
 directions = combined_csv['風向(360degree)'].to_numpy()
 speeds = combined_csv['風速(m/s)'].to_numpy()
+station_longitude = 120.3957    # 經度
+station_latitude = 22.6056  # 緯度
 
 # 指定地圖的範圍
 minlon, maxlon, minlat, maxlat = (station_longitude-0.5,station_longitude+0.5, station_latitude-0.5, station_latitude+0.5)
 
 # 選擇 Stamen 地圖圖源
 stamen_terrain = cimgt.Stamen('terrain-background')
-main_ax.add_image(stamen_terrain, 8)
-# 創建地圖
+
+# 建立地圖
 proj = ccrs.PlateCarree()
 fig = plt.figure(figsize=(10, 8))
 main_ax = fig.add_subplot(1, 1, 1, projection=proj)
 main_ax.set_extent([minlon, maxlon, minlat, maxlat], crs=proj)
 main_ax.coastlines()
-main_ax.add_feature(cfeature.LAND)#添加陆地
-main_ax.add_feature(cfeature.COASTLINE,lw = 0.3)#添加海岸线
-main_ax.add_feature(cfeature.RIVERS,lw = 0.25)#添加河流
-#ax.add_feature(cfeat.RIVERS.with_scale('50m'),lw = 0.25)  # 加载分辨率为50的河流
-main_ax.add_feature(cfeature.LAKES)#添加湖泊
-main_ax.add_feature(cfeature.BORDERS, linestyle = '-',lw = 0.25)#不推荐，因为该默认参数会使得我国部分领土丢失
-main_ax.add_feature(cfeature.OCEAN)#添加海洋
+main_ax.add_feature(cfeature.LAND)#新增陸地
+main_ax.add_feature(cfeature.COASTLINE,lw = 0.3)#新增海岸線
+main_ax.add_feature(cfeature.RIVERS,lw = 0.25)#新增河流
+#ax.add_feature(cfeat.RIVERS.with_scale('50m'),lw = 0.25)  # 載入解析度為50的河流
+main_ax.add_feature(cfeature.LAKES)#新增湖泊
+main_ax.add_feature(cfeature.BORDERS, linestyle = '-',lw = 0.25)#不推薦，因為該預設參數會使得我國部分領土丟失
+main_ax.add_feature(cfeature.OCEAN)#新增海洋
 
 
-# 在地圖上添加風花圖的位置
+
+# 在地圖上新增風花圖的位置
 wrax = inset_axes(
     main_ax,
     width=1,  # size in inches
@@ -327,9 +336,10 @@ wrax = inset_axes(
 )
 
 # 繪製風花圖
-wrax.bar(directions, speeds, edgecolor='white')
+wrax.bar(directions, speeds, edgecolor='none', normed=True, opening=0.8, nsector=16, bins=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+         blowto=False)
 
-# 設定風花圖標題
+# 設定風花圖示題
 # wrax.set_title("Wind Rose")
 
 plt.show()
