@@ -35,7 +35,9 @@ Chrome的版本太新也是一個大問題chromedriver支援還沒更新
 
 ![image](https://github.com/gtgrthrst/CODiS-crawler_2024/assets/37490507/7c0c929f-3ac6-4712-a124-37a0da61d196)
 
+繪製月份子圖
 
 ![Wind_Rose_Subplots](Wind_Rose_Subplots.png)
 
+還有套上地圖兩個範例給大家參考
 ![Wind_Rose_Map](Wind_Rose_Map.png)
